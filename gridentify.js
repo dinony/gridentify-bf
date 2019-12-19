@@ -1,14 +1,15 @@
 const read = require('read')
+const beeper = require('beeper')
 
 const _ROWS_ = 5
 const _COLUMNS_ = 5
 
 const initGame = [
-  [2, 1, 2, 2, 3],
-  [2, 1, 3, 1, 1],
-  [1, 2, 3, 2, 2],
-  [2, 3, 3, 1, 3],
-  [2, 1, 2, 1, 3]
+  [3, 2, 2, 3, 2],
+  [1, 2, 3, 1, 3],
+  [3, 3, 2, 2, 1],
+  [1, 2, 2, 2, 2],
+  [1, 2, 2, 3, 1]
 ]
 
 function cloneGame(game) {
@@ -294,6 +295,8 @@ async function main() {
       const promptPath = subPath.map(([pR, pC]) => {
         return `Enter value for (${pR}, ${pC}):`
       })
+
+      await beeper(3)
 
       const parsedInputs = []
       for(let p = 0; p < promptPath.length; p++) {
