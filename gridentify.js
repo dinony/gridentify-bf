@@ -87,12 +87,8 @@ function tracePath(game, currentPos, currentPath, paths) {
 }
 
 function pathStr(path) {
-  return path.reduce((accum, [r, c], i) => {
-    if(accum.length === 0) {
-      return `(${r}, ${c})`
-    } else {
-      return `${accum} -> (${r}, ${c})`
-    }
+  return path.reduce((accum, [r, c]) => {
+    return accum.length === 0 ? `(${r}, ${c})`: `${accum} -> (${r}, ${c})`
   }, '')
 }
 
@@ -146,7 +142,7 @@ function getFillStrs(currentStr, currentIndex, accumStrs) {
 
 function fillPath(game, path, values) {
   const cloned = cloneGame(game)
-  for(p = 0; p < path.length; p++) {
+  for(let p = 0; p < path.length; p++) {
     const [fR, fC] = path[p]
     cloned[fR][fC] = values[p]
   }
@@ -314,7 +310,7 @@ async function main() {
       console.log('')
       game = nextGame
     } else {
-      paying = false
+      playing = false
     }
   }
 
