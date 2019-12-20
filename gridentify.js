@@ -184,10 +184,11 @@ function forEachPos(cb) {
 function evalBreadthFirst(gameMeta) {
   const queue = [gameMeta]
   let numGames = 0
-  while(numGames < _MAX_EVAL_GAMES_ && queue.length > 0) {
-    const {game, score, target} = queue.shift()
+  let queuePointer = 0
+  while(numGames < _MAX_EVAL_GAMES_ && queuePointer < queue.length) {
+    const {game, score, target} = queue[queuePointer]
 
-    forEachPos(game, currentPos => {
+    forEachPos(currentPos => {
       const possiblePaths = []
       tracePath(game, currentPos, [currentPos], possiblePaths)
       
@@ -212,6 +213,8 @@ function evalBreadthFirst(gameMeta) {
         })
       })
     })
+
+    queuePointer++
   }
 }
 
