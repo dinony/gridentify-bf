@@ -4,12 +4,14 @@ const beeper = require('beeper')
 const _ROWS_ = 5
 const _COLUMNS_ = 5
 
+const _MAX_EVAL_GAMES_ = 1000000
+
 const initGame = [
-  [3, 2, 2, 3, 2],
-  [1, 2, 3, 1, 3],
-  [3, 3, 2, 2, 1],
-  [1, 2, 2, 2, 2],
-  [1, 2, 2, 3, 1]
+  [3, 2, 1, 2, 2],
+  [1, 3, 1, 2, 3],
+  [2, 1, 3, 3, 1],
+  [1, 3, 3, 2, 1],
+  [1, 3, 2, 3, 1]
 ]
 
 function cloneGame(game) {
@@ -40,7 +42,7 @@ function isInPath(path, [r, c]) {
   }) !== undefined
 }
 
-function accumPath(game, currentPos, currentPath, paths) {
+function tracePath(game, currentPos, currentPath, paths) {
   const [r, c] = currentPos
   const topIndex = r-1
   const leftIndex = c-1
@@ -52,7 +54,7 @@ function accumPath(game, currentPos, currentPath, paths) {
     if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
       const newPath = currentPath.concat([newPos])
       paths.push(newPath)
-      accumPath(game, newPos, newPath, paths)
+      tracePath(game, newPos, newPath, paths)
     }
   }
 
@@ -61,7 +63,7 @@ function accumPath(game, currentPos, currentPath, paths) {
     if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
       const newPath = currentPath.concat([newPos])
       paths.push(newPath)
-      accumPath(game, newPos, newPath, paths)
+      tracePath(game, newPos, newPath, paths)
     }
   }
 
@@ -70,7 +72,7 @@ function accumPath(game, currentPos, currentPath, paths) {
     if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
       const newPath = currentPath.concat([newPos])
       paths.push(newPath)
-      accumPath(game, newPos, newPath, paths)
+      tracePath(game, newPos, newPath, paths)
     }
   }
 
@@ -79,7 +81,7 @@ function accumPath(game, currentPos, currentPath, paths) {
     if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
       const newPath = currentPath.concat([newPos])
       paths.push(newPath)
-      accumPath(game, newPos, newPath, paths)
+      tracePath(game, newPos, newPath, paths)
     }
   }
 }
@@ -110,8 +112,8 @@ function printGame(game) {
   }
 }
 
-function computeScore(game, currentPos, path) {
-  return getValue(game, currentPos) * path.length
+function computeScore(game, path) {
+  return getValue(game, path[0]) * path.length
 }
 
 function getFillStrs(currentStr, currentIndex, accumStrs) {
@@ -142,71 +144,80 @@ function getFillStrs(currentStr, currentIndex, accumStrs) {
   }
 }
 
-function applyPath(game, currentPos, path) {
-  const nextGame = cloneGame(game)
+function fillPath(game, path, values) {
+  const cloned = cloneGame(game)
+  for(p = 0; p < path.length; p++) {
+    const [fR, fC] = path[p]
+    cloned[fR][fC] = values[p]
+  }
+  return cloned
+}
+
+function applyPath(game, path, fillValues) {
+  const cloned = cloneGame(game)
   const [lR, lC] = path[path.length-1]
-  nextGame[lR][lC] = computeScore(game, currentPos, path)
+  cloned[lR][lC] = computeScore(game, path)
 
-  const fillLength = path.length-1
+  const fPath = path.slice(0, path.length-1)
+  const filled = fillPath(cloned, fPath, fillValues)
+  return filled
+}
 
+function enumPath(game, path) {
   const fillStrs = []
-  getFillStrs('1'.repeat(fillLength), 0, fillStrs)
+  getFillStrs('1'.repeat(path.length-1), 0, fillStrs)
 
-  possibleGames = []
+  const possibleGames = []
 
   fillStrs.forEach(fStr => {
-    const possibleGame = cloneGame(nextGame)
-    for(p = 0; p < fillLength; p++) {
-      const [fR, fC] = path[p]
-      possibleGame[fR][fC] = parseInt(fStr[p])
-    }
-
+    const possibleGame = applyPath(game, path, Array.from(fStr).map(parseInt))
     possibleGames.push(possibleGame)
   })
 
   return possibleGames
 }
 
-function evalStep({game, score}, games, numStep, maxPathLength) {
-  if(numStep >= 0) {
+function evalStep({game, score, games, counterRef}) {
+  if(counterRef.numGames < _MAX_EVAL_GAMES_) {
+    const evalGames = []
+
     for(let r = 0; r < _ROWS_; r++) {
       for(let c = 0; c < _COLUMNS_; c++) {
         const possiblePaths = []
         const currentPos = [r, c]
-        accumPath(game, currentPos, [currentPos], possiblePaths)
+        tracePath(game, currentPos, [currentPos], possiblePaths)
         // if(possiblePaths.length > 0) {
         //   console.log(`(${r}, ${c}) has ${possiblePaths.length} paths (step: ${numStep})`)
         // }
 
-        const filteredPaths = possiblePaths.filter(p => p.length <= maxPathLength)
-        if(filteredPaths.length > 0) {
-          const pathScores = filteredPaths.map(p => computeScore(game, currentPos, p))
-
-          const maxIndex = pathScores.reduce((maxIndex, pScore, cIndex) => {
-            const maxScore = pathScores[maxIndex]
-            return pScore > maxScore ? cIndex: maxIndex
-          }, 0)
-
-          const path = possiblePaths[maxIndex]
-
-          const nextGame = {
+        possiblePaths.forEach(path => {
+          const pushedGame = {
             state: game, path,
-            score: score+computeScore(game, currentPos, path),
+            pos: currentPos,
+            score: score+computeScore(game, path),
             children: []
           }
 
-          games.push(nextGame)
+          games.push(pushedGame)
+          counterRef.numGames++
 
-          const possibleGames = applyPath(game, currentPos, path)
+          const possibleGames = enumPath(game, path)
           // console.log(`(${r}, ${c}) with path ${pathStr(path)} has ${possibleGames.length} games`)
           // console.log('')
 
-          possibleGames.forEach(pGame => {
-            evalStep({game: pGame, score: nextGame.score}, nextGame.children, numStep-1, maxPathLength)
+          possibleGames.forEach(possibleGame => {
+            evalGames.push({
+              game: possibleGame,
+              score: pushedGame.score,
+              games: pushedGame.children,
+              counterRef
+            })
           })
-        }
+        })
       }
     }
+
+    evalGames.forEach(evalStep)
   }
 }
 
@@ -220,30 +231,25 @@ function countGames(games) {
   }
 }
 
-function populateMinMaxScores(game) {
-  game.minScore = game.score
+function populateMaxScores(game) {
   game.maxScore = game.score
   if(game.children.length > 0) {
-    game.children.forEach(populateMinMaxScores)
+    game.children.forEach(populateMaxScores)
 
-    const [minScore, maxScore] = game.children.reduce(([curMin, curMax], child) => {
-      return [
-        child.minScore < curMin ? child.minScore: curMin,
-        child.maxScore > curMax ? child.maxScore: curMax
-      ]
-    }, [game.minScore, game.maxScore])
+    const maxScore = game.children.reduce((curMax, child) => {
+      return child.maxScore > curMax ? child.maxScore: curMax
+    }, game.maxScore)
 
-    game.minScore = game.score+minScore
     game.maxScore = game.score+maxScore
   }
 }
 
-function bruteForce(game, maxSteps, maxPathLength) {
+function bruteForce(game) {
   const games = []
-  evalStep({game, score: 0}, games, maxSteps, maxPathLength)
+  evalStep({game, score: 0, games, counterRef: {numGames: 0}})
 
   if(games.length > 0) {
-    games.forEach(populateMinMaxScores)
+    games.forEach(populateMaxScores)
     console.log('Total Games', countGames(games))
 
     const bestGameIndex = games.reduce((maxIndex, g, cI) => {
@@ -270,27 +276,19 @@ function prompt(msg, options) {
   })
 }
 
-function selectGame(games, path, values) {
-  return games.find(g => {
-    return path.find((p, pIndex) => {
-      return getValue(g.state, p) !== values[pIndex]
-    }) === undefined
-  })
-}
-
 async function main() {
   let playing = true
   let game = initGame
   let score = 0
   while(playing) {
-    const nextStep = bruteForce(game, 4, 2)
+    printGame(game)
+    const chosenStep = bruteForce(game)
 
-    if(nextStep !== null) {
-      score += nextStep.score
-      printGame(nextStep.state)
+    if(chosenStep !== null) {
+      score += chosenStep.score
 
-      console.log(pathStr(nextStep.path), 'score:', score)
-      const path = nextStep.path
+      console.log(pathStr(chosenStep.path), 'score:', score)
+      const path = chosenStep.path
       const subPath = path.slice(0, path.length-1)
       const promptPath = subPath.map(([pR, pC]) => {
         return `Enter value for (${pR}, ${pC}):`
@@ -304,16 +302,12 @@ async function main() {
         parsedInputs.push(parseInt(res))
       }
 
-      const selectedGame = selectGame(nextStep.children, subPath, parsedInputs)
+      // const parsedInputs = [2]
 
-      if(selectedGame !== undefined) {
-        printGame(selectedGame.state)
-        console.log('')
-        game = selectedGame.state
-      } else {
-        playing = false
-        console.log('No game found :/')
-      }
+      const nextGame = applyPath(chosenStep.state, chosenStep.path, parsedInputs)
+
+      console.log('')
+      game = nextGame
     } else {
       paying = false
     }
