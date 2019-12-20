@@ -231,15 +231,20 @@ function countGames(games) {
   }
 }
 
-function populateMaxScores(game) {
+function populateMinMaxScores(game) {
+  game.minScore = game.score
   game.maxScore = game.score
   if(game.children.length > 0) {
-    game.children.forEach(populateMaxScores)
+    game.children.forEach(populateMinMaxScores)
 
-    const maxScore = game.children.reduce((curMax, child) => {
-      return child.maxScore > curMax ? child.maxScore: curMax
-    }, game.maxScore)
+    const [minScore, maxScore] = game.children.reduce(([curMin, curMax], child) => {
+      return [
+        child.minScore < curMin ? child.minScore: curMin,
+        child.maxScore > curMax ? child.maxScore: curMax
+      ]
+    }, [game.minScore, game.maxScore])
 
+    game.minScore = game.score+minScore
     game.maxScore = game.score+maxScore
   }
 }
@@ -249,12 +254,12 @@ function bruteForce(game) {
   evalStep({game, score: 0, games, counterRef: {numGames: 0}})
 
   if(games.length > 0) {
-    games.forEach(populateMaxScores)
+    games.forEach(populateMinMaxScores)
     console.log('Total Games', countGames(games))
 
     const bestGameIndex = games.reduce((maxIndex, g, cI) => {
       const bGame = games[maxIndex]
-      return g.maxScore > bGame.maxScore? cI: maxIndex
+      return g.minScore > bGame.minScore? cI: maxIndex
     }, 0)
 
     const bestGame = games[bestGameIndex]
@@ -287,7 +292,7 @@ async function main() {
     if(chosenStep !== null) {
       score += chosenStep.score
 
-      console.log(pathStr(chosenStep.path), 'score:', score)
+      console.log(pathStr(chosenStep.path), 'score:', score, 'Expected Min Score', chosenStep.minScore)
       const path = chosenStep.path
       const subPath = path.slice(0, path.length-1)
       const promptPath = subPath.map(([pR, pC]) => {
