@@ -173,7 +173,7 @@ function enumPath(game, path) {
   return possibleGames
 }
 
-function forEachPos(game, cb) {
+function forEachPos(cb) {
   for(let r = 0; r < _ROWS_; r++) {
     for(let c = 0; c < _COLUMNS_; c++) {
       cb([r, c])
