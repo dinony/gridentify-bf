@@ -173,47 +173,45 @@ function enumPath(game, path) {
   return possibleGames
 }
 
-function evalStep({game, score, games, counterRef}) {
-  if(counterRef.numGames < _MAX_EVAL_GAMES_) {
-    const evalGames = []
+function forEachPos(game, cb) {
+  for(let r = 0; r < _ROWS_; r++) {
+    for(let c = 0; c < _COLUMNS_; c++) {
+      cb([r, c])
+    }
+  }
+}
 
-    for(let r = 0; r < _ROWS_; r++) {
-      for(let c = 0; c < _COLUMNS_; c++) {
-        const possiblePaths = []
-        const currentPos = [r, c]
-        tracePath(game, currentPos, [currentPos], possiblePaths)
-        // if(possiblePaths.length > 0) {
-        //   console.log(`(${r}, ${c}) has ${possiblePaths.length} paths (step: ${numStep})`)
-        // }
+function evalBreadthFirst(gameMeta) {
+  const queue = [gameMeta]
+  let numGames = 0
+  while(numGames < _MAX_EVAL_GAMES_ && queue.length > 0) {
+    const {game, score, target} = queue.shift()
 
-        possiblePaths.forEach(path => {
-          const pushedGame = {
-            state: game, path,
-            pos: currentPos,
-            score: score+computeScore(game, path),
-            children: []
-          }
+    forEachPos(game, currentPos => {
+      const possiblePaths = []
+      tracePath(game, currentPos, [currentPos], possiblePaths)
+      
+      possiblePaths.forEach(path => {
+        const pushedGame = {
+          state: game, 
+          path,
+          score: score+computeScore(game, path),
+          children: []
+        }
 
-          games.push(pushedGame)
-          counterRef.numGames++
+        target.push(pushedGame)
+        numGames++
 
-          const possibleGames = enumPath(game, path)
-          // console.log(`(${r}, ${c}) with path ${pathStr(path)} has ${possibleGames.length} games`)
-          // console.log('')
-
-          possibleGames.forEach(possibleGame => {
-            evalGames.push({
-              game: possibleGame,
-              score: pushedGame.score,
-              games: pushedGame.children,
-              counterRef
-            })
+        const possibleGames = enumPath(game, path)
+        possibleGames.forEach(possibleGame => {
+          queue.push({
+            game: possibleGame,
+            score: pushedGame.score,
+            target: pushedGame.children
           })
         })
-      }
-    }
-
-    evalGames.forEach(evalStep)
+      })
+    })
   }
 }
 
@@ -246,19 +244,20 @@ function populateMinMaxScores(game) {
 }
 
 function bruteForce(game) {
-  const games = []
-  evalStep({game, score: 0, games, counterRef: {numGames: 0}})
+  const evaledGames = []
+  // evalStep({game, score: 0, games, counterRef: {numGames: 0}})
+  evalBreadthFirst({game, score: 0, target: evaledGames})
 
-  if(games.length > 0) {
-    games.forEach(populateMinMaxScores)
-    console.log('Total Games', countGames(games))
+  if(evaledGames.length > 0) {
+    evaledGames.forEach(populateMinMaxScores)
+    console.log('Total Games', countGames(evaledGames))
 
-    const bestGameIndex = games.reduce((maxIndex, g, cI) => {
-      const bGame = games[maxIndex]
+    const bestGameIndex = evaledGames.reduce((maxIndex, g, cI) => {
+      const bGame = evaledGames[maxIndex]
       return g.minScore > bGame.minScore? cI: maxIndex
     }, 0)
 
-    const bestGame = games[bestGameIndex]
+    const bestGame = evaledGames[bestGameIndex]
     return bestGame
   } else {
     return null
