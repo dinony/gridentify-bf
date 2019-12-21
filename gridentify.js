@@ -237,7 +237,7 @@ function populateMinMaxScores(game) {
         child.minScore < curMin ? child.minScore: curMin,
         child.maxScore > curMax ? child.maxScore: curMax
       ]
-    }, [game.minScore, game.maxScore])
+    }, [Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])
 
     game.minScore = game.score+minScore
     game.maxScore = game.score+maxScore
