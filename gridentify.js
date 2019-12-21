@@ -17,18 +17,16 @@ const initGame = [
 
 function cloneGame(game) {
   const cloned = [
-    new Array(5),
-    new Array(5),
-    new Array(5),
-    new Array(5),
-    new Array(5)
+    [1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1]
   ]
 
-  for(let r = 0; r < _ROWS_; r++) {
-    for(let c = 0; c < _COLUMNS_; c++) {
-      cloned[r].push(game[r][c])
-    }
-  }
+  forEachPos(([r, c]) => {
+    cloned[r][c] = game[r][c]
+  })
 
   return cloned
 }
