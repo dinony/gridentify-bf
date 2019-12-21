@@ -141,23 +141,23 @@ function computeScore(game, path) {
 //   }
 // }
 
-function getFillStrsFixed(length) {
+function getFillNumsFixed(length) {
   switch(length) {
     case 1: {
-      return ['1', '2', '3']
+      return [[1], [2], [3]]
     }
     case 2: {
-      return ['11', '12', '13', '21', '22', '23', '31', '32', '33']
+      return [[1, 1], [1, 2], [1, 3], [2, 1], [2, 2], [2, 3], [3, 1], [3, 2], [3, 3]]
     } 
     case 3: {
       return [
-        '111', '112', '113', '121', '122', '123', '131', '132', '133',
-        '211', '212', '213', '221', '222', '223', '231', '232', '233',
-        '311', '312', '313', '321', '322', '323', '331', '332', '333'
+        [1, 1, 1], [1, 1, 2], [1, 1, 3], [1, 2, 1], [1, 2, 2], [1, 2, 3], [1, 3, 1], [1, 3, 2], [1, 3, 3],
+        [2, 1, 1], [2, 1, 2], [2, 1, 3], [2, 2, 1], [2, 2, 2], [2, 2, 3], [2, 3, 1], [2, 3, 2], [2, 3, 3],
+        [3, 1, 1], [3, 1, 2], [3, 1, 3], [3, 2, 1], [3, 2, 2], [3, 2, 3], [3, 3, 1], [3, 3, 2], [3, 3, 3]
       ]
     }
     default: {
-      throw new Error(`getFillStrsFixed(${length}): Length not supported!`)
+      throw new Error(`getFillNumsFixed(${length}): Length not supported!`)
     }
   }
 }
@@ -179,10 +179,10 @@ function applyPath(game, path, fillValues) {
 }
 
 function enumPath(game, path) {
-  const fillStrs = getFillStrsFixed(path.length-1)
+  const fillNums = getFillNumsFixed(path.length-1)
 
-  return fillStrs.map(fStr => {
-    const possibleGame = applyPath(game, path, Array.from(fStr).map(parseInt))
+  return fillNums.map(digits => {
+    const possibleGame = applyPath(game, path, digits)
     return possibleGame
   })
 }
