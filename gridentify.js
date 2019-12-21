@@ -25,7 +25,7 @@ function cloneGame(game) {
 
   for(let r = 0; r < _ROWS_; r++) {
     for(let c = 0; c < _COLUMNS_; c++) {
-      cloned[r].push(getValue(game, [r, c]))
+      cloned[r].push(game[r][c])
     }
   }
 
@@ -141,12 +141,10 @@ function getFillStrs(currentStr, currentIndex, accumStrs, counterRef={k:0}) {
 }
 
 function fillPath(game, path, values) {
-  const cloned = cloneGame(game)
-  for(let p = 0; p < path.length; p++) {
+  for(let p = 0; p < path.length-1; p++) {
     const [fR, fC] = path[p]
-    cloned[fR][fC] = values[p]
+    game[fR][fC] = values[p]
   }
-  return cloned
 }
 
 function applyPath(game, path, fillValues) {
@@ -154,9 +152,8 @@ function applyPath(game, path, fillValues) {
   const [lR, lC] = path[path.length-1]
   cloned[lR][lC] = computeScore(game, path)
 
-  const fPath = path.slice(0, path.length-1)
-  const filled = fillPath(cloned, fPath, fillValues)
-  return filled
+  fillPath(cloned, path, fillValues)
+  return cloned
 }
 
 function enumPath(game, path) {
