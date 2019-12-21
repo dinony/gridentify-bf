@@ -44,45 +44,47 @@ function isInPath(path, [r, c]) {
 }
 
 function tracePath(game, currentPos, currentPath, paths) {
-  const [r, c] = currentPos
-  const topIndex = r-1
-  const leftIndex = c-1
-  const bottomIndex = r+1
-  const rightIndex = c+1
+  if(currentPath.length < _MAX_PATH_LENGTH_) {
+    const [r, c] = currentPos
+    const topIndex = r-1
+    const leftIndex = c-1
+    const bottomIndex = r+1
+    const rightIndex = c+1
 
-  if(topIndex > 0) {
-    const newPos = [topIndex, c]
-    if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
-      const newPath = currentPath.concat([newPos])
-      paths.push(newPath)
-      tracePath(game, newPos, newPath, paths)
+    if(topIndex > 0) {
+      const newPos = [topIndex, c]
+      if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
+        const newPath = currentPath.concat([newPos])
+        paths.push(newPath)
+        tracePath(game, newPos, newPath, paths)
+      }
     }
-  }
 
-  if(leftIndex > 0) {
-    const newPos = [r, leftIndex]
-    if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
-      const newPath = currentPath.concat([newPos])
-      paths.push(newPath)
-      tracePath(game, newPos, newPath, paths)
+    if(leftIndex > 0) {
+      const newPos = [r, leftIndex]
+      if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
+        const newPath = currentPath.concat([newPos])
+        paths.push(newPath)
+        tracePath(game, newPos, newPath, paths)
+      }
     }
-  }
 
-  if(bottomIndex < _ROWS_) {
-    const newPos = [bottomIndex, c]
-    if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
-      const newPath = currentPath.concat([newPos])
-      paths.push(newPath)
-      tracePath(game, newPos, newPath, paths)
+    if(bottomIndex < _ROWS_) {
+      const newPos = [bottomIndex, c]
+      if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
+        const newPath = currentPath.concat([newPos])
+        paths.push(newPath)
+        tracePath(game, newPos, newPath, paths)
+      }
     }
-  }
 
-  if(rightIndex < _COLUMNS_) {
-    const newPos = [r, rightIndex]
-    if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
-      const newPath = currentPath.concat([newPos])
-      paths.push(newPath)
-      tracePath(game, newPos, newPath, paths)
+    if(rightIndex < _COLUMNS_) {
+      const newPos = [r, rightIndex]
+      if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
+        const newPath = currentPath.concat([newPos])
+        paths.push(newPath)
+        tracePath(game, newPos, newPath, paths)
+      }
     }
   }
 }
@@ -207,26 +209,24 @@ function evalBreadthFirst(gameMeta) {
       tracePath(game, currentPos, [currentPos], possiblePaths)
       
       possiblePaths.forEach(path => {
-        if(path.length <= _MAX_PATH_LENGTH_) {
-          const pushedGame = {
-            state: game, 
-            path,
-            score: score+computeScore(game, path),
-            children: []
-          }
-  
-          target.push(pushedGame)
-          numGames++
-  
-          const possibleGames = enumPath(game, path)
-          possibleGames.forEach(possibleGame => {
-            queue.push({
-              game: possibleGame,
-              score: pushedGame.score,
-              target: pushedGame.children
-            })
-          })
+        const pushedGame = {
+          state: game, 
+          path,
+          score: score+computeScore(game, path),
+          children: []
         }
+
+        target.push(pushedGame)
+        numGames++
+
+        const possibleGames = enumPath(game, path)
+        possibleGames.forEach(possibleGame => {
+          queue.push({
+            game: possibleGame,
+            score: pushedGame.score,
+            target: pushedGame.children
+          })
+        })
       })
     })
 
