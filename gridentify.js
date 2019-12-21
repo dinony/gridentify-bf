@@ -5,6 +5,7 @@ const _ROWS_ = 5
 const _COLUMNS_ = 5
 
 const _MAX_EVAL_GAMES_ = 1000000
+const _MAX_PATH_LENGTH_ = 3
 
 const initGame = [
   [3, 2, 1, 2, 2],
@@ -189,7 +190,7 @@ function evalBreadthFirst(gameMeta) {
       const possiblePaths = []
       tracePath(game, currentPos, [currentPos], possiblePaths)
       
-      possiblePaths.forEach(path => {
+      possiblePaths.filter(p => p.length <= _MAX_PATH_LENGTH_).forEach(path => {
         const pushedGame = {
           state: game, 
           path,
