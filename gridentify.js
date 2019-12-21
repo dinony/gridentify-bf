@@ -268,7 +268,11 @@ function bruteForce(game) {
   evalBreadthFirst({game, score: 0, target: evaledGames})
 
   if(evaledGames.length > 0) {
-    evaledGames.forEach(populateMinMaxScores)
+    evaledGames.forEach(g => populateMinMaxScores(g))
+    // evaledGames.forEach(populateDepth)
+    evaledGames.forEach(g => {
+      populateHeight(g)
+    })
     console.log('Total Games', countGames(evaledGames))
 
     const bestGameIndex = evaledGames.reduce((maxIndex, g, cI) => {
