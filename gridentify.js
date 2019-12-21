@@ -112,8 +112,8 @@ function computeScore(game, path) {
   return getValue(game, path[0]) * path.length
 }
 
-function getFillStrs(currentStr, currentIndex, accumStrs) {
-  if(currentIndex < currentStr.length) {
+function getFillStrs(currentStr, currentIndex, accumStrs, counterRef={k:0}) {
+  if(currentIndex >= 0) {
     const left = currentStr.substr(0, currentIndex)
     const right = currentStr.substr(currentIndex+1)
 
@@ -121,22 +121,22 @@ function getFillStrs(currentStr, currentIndex, accumStrs) {
     const v2 = `${left}2${right}`
     const v3 = `${left}3${right}`
 
-
-    getFillStrs(v1, currentIndex+1, accumStrs)
-    getFillStrs(v2, currentIndex+1, accumStrs)
-    getFillStrs(v3, currentIndex+1, accumStrs)
-
-    if(!accumStrs.includes(v1)) {
+    if(counterRef.k % 3 !== 0 || counterRef.k === 0) {
       accumStrs.push(v1)
     }
-
-    if(!accumStrs.includes(v2)) {
+    counterRef.k+=1
+    if(counterRef.k % 3 !== 0) {
       accumStrs.push(v2)
-    }
-
-    if(!accumStrs.includes(v3)) {
+    }    
+    counterRef.k+=1
+    if(counterRef.k % 3 !== 0) {
       accumStrs.push(v3)
     }
+    counterRef.k+=1
+
+    getFillStrs(v1, currentIndex-1, accumStrs, counterRef)
+    getFillStrs(v2, currentIndex-1, accumStrs, counterRef)
+    getFillStrs(v3, currentIndex-1, accumStrs, counterRef)
   }
 }
 
@@ -161,7 +161,7 @@ function applyPath(game, path, fillValues) {
 
 function enumPath(game, path) {
   const fillStrs = []
-  getFillStrs('1'.repeat(path.length-1), 0, fillStrs)
+  getFillStrs('1'.repeat(path.length-1), path.length-2, fillStrs)
 
   const possibleGames = []
 
