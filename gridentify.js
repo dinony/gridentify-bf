@@ -17,11 +17,11 @@ const initGame = [
 
 function cloneGame(game) {
   const cloned = [
-    [],
-    [],
-    [],
-    [],
-    []
+    new Array(5),
+    new Array(5),
+    new Array(5),
+    new Array(5),
+    new Array(5)
   ]
 
   for(let r = 0; r < _ROWS_; r++) {
@@ -113,31 +113,49 @@ function computeScore(game, path) {
   return getValue(game, path[0]) * path.length
 }
 
-function getFillStrs(currentStr, currentIndex, accumStrs, counterRef={k:0}) {
-  if(currentIndex >= 0) {
-    const left = currentStr.substr(0, currentIndex)
-    const right = currentStr.substr(currentIndex+1)
+// function getFillStrs(currentStr, currentIndex, accumStrs, counterRef={k:0}) {
+//   if(currentIndex >= 0) {
+//     const left = currentStr.substr(0, currentIndex)
+//     const right = currentStr.substr(currentIndex+1)
 
-    const v1 = `${left}1${right}`
-    const v2 = `${left}2${right}`
-    const v3 = `${left}3${right}`
+//     const v1 = `${left}1${right}`
+//     const v2 = `${left}2${right}`
+//     const v3 = `${left}3${right}`
 
-    if(counterRef.k % 3 !== 0 || counterRef.k === 0) {
-      accumStrs.push(v1)
+//     if(counterRef.k % 3 !== 0 || counterRef.k === 0) {
+//       accumStrs.push(v1)
+//     }
+//     counterRef.k+=1
+//     if(counterRef.k % 3 !== 0) {
+//       accumStrs.push(v2)
+//     }    
+//     counterRef.k+=1
+//     if(counterRef.k % 3 !== 0) {
+//       accumStrs.push(v3)
+//     }
+//     counterRef.k+=1
+
+//     getFillStrs(v1, currentIndex-1, accumStrs, counterRef)
+//     getFillStrs(v2, currentIndex-1, accumStrs, counterRef)
+//     getFillStrs(v3, currentIndex-1, accumStrs, counterRef)
+//   }
+// }
+
+function getFillStrsFixed(length) {
+  switch(length) {
+    case 1: {
+      return ['1', '2', '3']
     }
-    counterRef.k+=1
-    if(counterRef.k % 3 !== 0) {
-      accumStrs.push(v2)
-    }    
-    counterRef.k+=1
-    if(counterRef.k % 3 !== 0) {
-      accumStrs.push(v3)
+    case 2: {
+      return ['11', '12', '13', '21', '22', '23', '31', '32', '33']
+    } 
+    case 3: {
+      return [
+        '111', '112', '113', '121', '122', '123', '131', '132', '133',
+        '211', '212', '212', '221', '222', '223', '231', '232', '233',
+        '311', '312', '313', '321', '322', '323', '331', '332', '333'
+      ]
     }
-    counterRef.k+=1
-
-    getFillStrs(v1, currentIndex-1, accumStrs, counterRef)
-    getFillStrs(v2, currentIndex-1, accumStrs, counterRef)
-    getFillStrs(v3, currentIndex-1, accumStrs, counterRef)
   }
 }
 
@@ -158,17 +176,12 @@ function applyPath(game, path, fillValues) {
 }
 
 function enumPath(game, path) {
-  const fillStrs = []
-  getFillStrs('1'.repeat(path.length-1), path.length-2, fillStrs)
+  const fillStrs = getFillStrsFixed(path.length-1)
 
-  const possibleGames = []
-
-  fillStrs.forEach(fStr => {
+  return fillStrs.map(fStr => {
     const possibleGame = applyPath(game, path, Array.from(fStr).map(parseInt))
-    possibleGames.push(possibleGame)
+    return possibleGame
   })
-
-  return possibleGames
 }
 
 function forEachPos(cb) {
@@ -190,25 +203,27 @@ function evalBreadthFirst(gameMeta) {
       const possiblePaths = []
       tracePath(game, currentPos, [currentPos], possiblePaths)
       
-      possiblePaths.filter(p => p.length <= _MAX_PATH_LENGTH_).forEach(path => {
-        const pushedGame = {
-          state: game, 
-          path,
-          score: score+computeScore(game, path),
-          children: []
-        }
-
-        target.push(pushedGame)
-        numGames++
-
-        const possibleGames = enumPath(game, path)
-        possibleGames.forEach(possibleGame => {
-          queue.push({
-            game: possibleGame,
-            score: pushedGame.score,
-            target: pushedGame.children
+      possiblePaths.forEach(path => {
+        if(path.length <= _MAX_PATH_LENGTH_) {
+          const pushedGame = {
+            state: game, 
+            path,
+            score: score+computeScore(game, path),
+            children: []
+          }
+  
+          target.push(pushedGame)
+          numGames++
+  
+          const possibleGames = enumPath(game, path)
+          possibleGames.forEach(possibleGame => {
+            queue.push({
+              game: possibleGame,
+              score: pushedGame.score,
+              target: pushedGame.children
+            })
           })
-        })
+        }
       })
     })
 
