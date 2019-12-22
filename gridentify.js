@@ -4,8 +4,9 @@ const beeper = require('beeper')
 const _ROWS_ = 5
 const _COLUMNS_ = 5
 
-const _MAX_EVAL_GAMES_ = 1000000
-const _MAX_PATH_LENGTH_ = 3
+const _MAX_EVAL_GAMES_ = 3000000
+const _MAX_PATH_LENGTH_ = 4
+const _MIN_PROBABILITY_ = 0.0005
 
 const initGame = [
   [3, 2, 1, 2, 2],
@@ -195,12 +196,16 @@ function forEachPos(cb) {
   }
 }
 
+function getNumPossibleGames(length) {
+  return Math.pow(3, length-1)
+}
+
 function evalBreadthFirst(gameMeta) {
   const queue = [gameMeta]
   let numGames = 0
   let queuePointer = 0
   while(numGames < _MAX_EVAL_GAMES_ && queuePointer < queue.length) {
-    const {game, score, target} = queue[queuePointer]
+    const {game, score, target, p} = queue[queuePointer]
 
     forEachPos(currentPos => {
       const possiblePaths = []
@@ -210,6 +215,7 @@ function evalBreadthFirst(gameMeta) {
         const pushedGame = {
           state: game, 
           path,
+          p,
           score: score+computeScore(game, path),
           children: []
         }
@@ -217,14 +223,18 @@ function evalBreadthFirst(gameMeta) {
         target.push(pushedGame)
         numGames++
 
-        const possibleGames = enumPath(game, path)
-        possibleGames.forEach(possibleGame => {
-          queue.push({
-            game: possibleGame,
-            score: pushedGame.score,
-            target: pushedGame.children
+        const pPossibleGame = p/getNumPossibleGames(path.length)
+        if(pPossibleGame > _MIN_PROBABILITY_) {
+          const possibleGames = enumPath(game, path)
+          possibleGames.forEach(possibleGame => {
+            queue.push({
+              game: possibleGame,
+              p: pPossibleGame,
+              score: pushedGame.score,
+              target: pushedGame.children
+            })
           })
-        })
+        }
       })
     })
 
@@ -263,7 +273,7 @@ function populateMinMaxScores(game) {
 function bruteForce(game, score) {
   const evaledGames = []
   // evalStep({game, score: 0, games, counterRef: {numGames: 0}})
-  evalBreadthFirst({game, score, target: evaledGames})
+  evalBreadthFirst({game, score, target: evaledGames, p: 1.0})
 
   if(evaledGames.length > 0) {
     evaledGames.forEach(g => {populateMinMaxScores(g)})
