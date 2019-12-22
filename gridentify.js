@@ -260,13 +260,13 @@ function populateMinMaxScores(game) {
   }
 }
 
-function bruteForce(game) {
+function bruteForce(game, score) {
   const evaledGames = []
   // evalStep({game, score: 0, games, counterRef: {numGames: 0}})
-  evalBreadthFirst({game, score: 0, target: evaledGames})
+  evalBreadthFirst({game, score, target: evaledGames})
 
   if(evaledGames.length > 0) {
-    evaledGames.forEach(g => populateMinMaxScores(g))
+    evaledGames.forEach(g => {populateMinMaxScores(g)})
     // evaledGames.forEach(populateDepth)
     evaledGames.forEach(g => {
       populateHeight(g)
@@ -303,10 +303,10 @@ async function main() {
   let score = 0
   while(playing) {
     printGame(game)
-    const chosenStep = bruteForce(game)
+    const chosenStep = bruteForce(game, score)
 
     if(chosenStep !== null) {
-      score += chosenStep.score
+      score = chosenStep.score
 
       console.log(pathStr(chosenStep.path), 'score:', score, 'Expected Min Score', chosenStep.minScore)
       const path = chosenStep.path
