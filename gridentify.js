@@ -6,7 +6,9 @@ const _COLUMNS_ = 5
 
 const _MAX_EVAL_GAMES_ = 3000000
 const _MAX_PATH_LENGTH_ = 4
-const _MIN_PROBABILITY_ = 0.0005
+// const _MIN_PROBABILITY_ = 0.03
+const _MIN_PPATH_ = 1.0
+const _MAX_EVAL_DEPTH_ = 2
 
 const initGame = [
   [3, 2, 1, 2, 2],
@@ -32,6 +34,22 @@ function cloneGame(game) {
   return cloned
 }
 
+function clonePGame(pGame) {
+  const cloned = [
+    [1.0, 1.0, 1.0, 1.0, 1.0],
+    [1.0, 1.0, 1.0, 1.0, 1.0],
+    [1.0, 1.0, 1.0, 1.0, 1.0],
+    [1.0, 1.0, 1.0, 1.0, 1.0],
+    [1.0, 1.0, 1.0, 1.0, 1.0]
+  ]
+
+  forEachPos(([r, c]) => {
+    cloned[r][c] = pGame[r][c]
+  })
+
+  return cloned
+}
+
 function getValue(game, [r, c]) {
   return game[r][c]
 }
@@ -42,8 +60,8 @@ function isInPath(path, [r, c]) {
   }) !== undefined
 }
 
-function tracePath(game, currentPos, currentPath, paths) {
-  if(currentPath.length < _MAX_PATH_LENGTH_) {
+function tracePath({game, pGame}, currentPos, currentPath, paths) {
+  if(currentPath.path.length < _MAX_PATH_LENGTH_) {
     const [r, c] = currentPos
     const topIndex = r-1
     const leftIndex = c-1
@@ -52,37 +70,49 @@ function tracePath(game, currentPos, currentPath, paths) {
 
     if(topIndex > 0) {
       const newPos = [topIndex, c]
-      if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
-        const newPath = currentPath.concat([newPos])
+      if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath.path, newPos)) {
+        const newPath = {
+          path: currentPath.path.concat([newPos]), 
+          pPath: currentPath.pPath * getValue(pGame, newPos)
+        }
         paths.push(newPath)
-        tracePath(game, newPos, newPath, paths)
+        tracePath({game, pGame}, newPos, newPath, paths)
       }
     }
 
     if(leftIndex > 0) {
       const newPos = [r, leftIndex]
-      if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
-        const newPath = currentPath.concat([newPos])
+      if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath.path, newPos)) {
+        const newPath = {
+          path: currentPath.path.concat([newPos]), 
+          pPath: currentPath.pPath * getValue(pGame, newPos)
+        }
         paths.push(newPath)
-        tracePath(game, newPos, newPath, paths)
+        tracePath({game, pGame}, newPos, newPath, paths)
       }
     }
 
     if(bottomIndex < _ROWS_) {
       const newPos = [bottomIndex, c]
-      if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
-        const newPath = currentPath.concat([newPos])
+      if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath.path, newPos)) {
+        const newPath = {
+          path: currentPath.path.concat([newPos]), 
+          pPath: currentPath.pPath * getValue(pGame, newPos)
+        }
         paths.push(newPath)
-        tracePath(game, newPos, newPath, paths)
+        tracePath({game, pGame}, newPos, newPath, paths)
       }
     }
 
     if(rightIndex < _COLUMNS_) {
       const newPos = [r, rightIndex]
-      if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath, newPos)) {
-        const newPath = currentPath.concat([newPos])
+      if(getValue(game, currentPos) === getValue(game, newPos) && !isInPath(currentPath.path, newPos)) {
+        const newPath = {
+          path: currentPath.path.concat([newPos]), 
+          pPath: currentPath.pPath * getValue(pGame, newPos)
+        }
         paths.push(newPath)
-        tracePath(game, newPos, newPath, paths)
+        tracePath({game, pGame}, newPos, newPath, paths)
       }
     }
   }
@@ -179,12 +209,27 @@ function applyPath(game, path, fillValues) {
   return cloned
 }
 
-function enumPath(game, path) {
+function applyPPath(pGame, path, pPath) {
+  const pCloned = clonePGame(pGame)
+  for(let p = 0; p < path.length-1; p++) {
+    const [r, c] = path[p]
+    pCloned[r][c] = pGame[r][c]/3
+  }
+
+  const [lR, lC] = path[path.length-1]
+  pCloned[lR][lC] = pGame[lR][lC] * pPath
+  return pCloned
+}
+
+
+function enumPath(game, pGame, path, pPath) {
   const fillNums = getFillNumsFixed(path.length-1)
+
+  const pCloned = applyPPath(pGame, path, pPath)
 
   return fillNums.map(digits => {
     const possibleGame = applyPath(game, path, digits)
-    return possibleGame
+    return {game: possibleGame, pGame: pCloned}
   })
 }
 
@@ -196,48 +241,75 @@ function forEachPos(cb) {
   }
 }
 
-function getNumPossibleGames(length) {
-  return Math.pow(3, length-1)
-}
+// function getNumPossibleGames(length) {
+//   return Math.pow(3, length-1)
+// }
 
 function evalBreadthFirst(gameMeta) {
   const queue = [gameMeta]
-  let numGames = 0
+  // let numGames = 0
   let queuePointer = 0
-  while(numGames < _MAX_EVAL_GAMES_ && queuePointer < queue.length) {
-    const {game, score, target, p} = queue[queuePointer]
+  while(/*numGames < _MAX_EVAL_GAMES_ &&*/ queuePointer < queue.length) {
+    const {game, pGame, score, target/*, p*/ , depth} = queue[queuePointer]
 
-    forEachPos(currentPos => {
-      const possiblePaths = []
-      tracePath(game, currentPos, [currentPos], possiblePaths)
-      
-      possiblePaths.forEach(path => {
-        const pushedGame = {
-          state: game, 
-          path,
-          p,
-          score: score+computeScore(game, path),
-          children: []
-        }
+    if(depth <= _MAX_EVAL_DEPTH_) {
+      forEachPos(currentPos => {
+        const possiblePaths = []
+        tracePath({game, pGame}, currentPos, {path: [currentPos], pPath: getValue(pGame, currentPos)}, possiblePaths)
 
-        target.push(pushedGame)
-        numGames++
+        if(possiblePaths.length > 0) {
 
-        const pPossibleGame = p/getNumPossibleGames(path.length)
-        if(pPossibleGame > _MIN_PROBABILITY_) {
-          const possibleGames = enumPath(game, path)
-          possibleGames.forEach(possibleGame => {
-            queue.push({
-              game: possibleGame,
-              p: pPossibleGame,
-              score: pushedGame.score,
-              target: pushedGame.children
-            })
+          const posPaths = possiblePaths.map(({pPath, path}) => {
+            const s = score+computeScore(game, path)
+            return {
+              path, 
+              pPath, 
+              pScore: s*pPath,
+              s
+            }
           })
+          
+          const bestIndex = posPaths.reduce((bestIndex, {pScore}, idx, src) => {
+            return pScore > src[bestIndex].pScore? idx: bestIndex
+          }, 0)
+
+          const {path, pPath, s} = posPaths[bestIndex]
+          
+          // forEach(({pPath, path}) => {
+          //   if(pPath >= _MIN_PPATH_) {
+              const pushedGame = { 
+                state: game,
+                pPath, 
+                path,
+                depth,
+                // p,
+                score: s,
+                children: []
+              }
+      
+              target.push(pushedGame)
+              // numGames++
+      
+              // const pPossibleGame = p/getNumPossibleGames(path.length)
+              // if(pPossibleGame > _MIN_PROBABILITY_) {
+                const possibleGames = enumPath(game, pGame, path, pPath)
+                possibleGames.forEach(({game: possibleGame, pGame: pPossibleGame}) => {
+                  queue.push({
+                    game: possibleGame,
+                    pGame: pPossibleGame,
+                    depth: depth+1,
+                    // p: pPossibleGame,
+                    score: pushedGame.score,
+                    target: pushedGame.children
+                  })
+                })
+              // }
+            // }
+          // })  
         }
       })
-    })
-
+    }
+    
     queuePointer++
   }
 }
@@ -273,7 +345,14 @@ function populateMinMaxScores(game) {
 function bruteForce(game, score) {
   const evaledGames = []
   // evalStep({game, score: 0, games, counterRef: {numGames: 0}})
-  evalBreadthFirst({game, score, target: evaledGames, p: 1.0})
+  const pGame = [
+    [1.0, 1.0, 1.0, 1.0, 1.0],
+    [1.0, 1.0, 1.0, 1.0, 1.0],
+    [1.0, 1.0, 1.0, 1.0, 1.0],
+    [1.0, 1.0, 1.0, 1.0, 1.0],
+    [1.0, 1.0, 1.0, 1.0, 1.0]
+  ]
+  evalBreadthFirst({game, pGame, score, target: evaledGames/*, p: 1.0*/, depth: 0})
 
   if(evaledGames.length > 0) {
     evaledGames.forEach(g => {populateMinMaxScores(g)})
